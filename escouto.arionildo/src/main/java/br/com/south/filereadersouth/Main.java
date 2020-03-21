@@ -1,6 +1,5 @@
 package br.com.south.filereadersouth;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -14,41 +13,33 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import br.com.south.filereadersouth.command.arquivo.ProcessadorArquivoCommand;
+import br.com.south.filereadersouth.util.SystemProperties;
 
 
 public class Main {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
-    @SuppressWarnings("null")
 	public static void main(String[] args) {
     	ProcessadorArquivoCommand command = new ProcessadorArquivoCommand();
         
         try (WatchService service = FileSystems.getDefault().newWatchService()) {
-        	WatchService watchService = FileSystems.getDefault().newWatchService();
-
-            Path inputPath = Paths.get(
-                    System.getProperty("user.home")
-                            .concat(File.separator)
-                            .concat("data")
-                            .concat(File.separator)
-                            .concat("in"));
-
-            inputPath.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
+            Path path = Paths.get(SystemProperties.DATA_IN);
+            path.register(service, StandardWatchEventKinds.ENTRY_CREATE);
 
             WatchKey key;
-            while ((key = watchService.take()) != null) {
+            while ((key = service.take()) != null) {
 	            for (WatchEvent<?> event : key.pollEvents()) {
 	                Path changed = (Path) event.context();
-	                if (changed.endsWith(".dat")) {
-	                    Path inputFilePath = inputPath.resolve(changed);
+	                String nomeArquivo = changed.toString();
+	                if (".dat".equalsIgnoreCase(nomeArquivo.substring(nomeArquivo.length() - 4))) {
+	                    Path inputFilePath = path.resolve(changed);
 	                    LOGGER.info("[Main.main] - Processando arquivo: ".concat(inputFilePath.toString()));
 	                    command.executar(inputFilePath.toFile());
 	                }
 	            }
 	            key.reset();
 	        }
-            key.toString();
         } catch (IOException e) {
         	LOGGER.error(e.getMessage());
 		} catch (InterruptedException e) {
